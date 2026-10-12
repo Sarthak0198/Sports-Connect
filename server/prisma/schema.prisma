@@ -1,0 +1,463 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ATHLETE
+  COACH
+  CLUB_ACADEMY
+  EVENT_ORGANIZER
+  ADMIN
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  STATE_LEVEL
+  NATIONAL_LEVEL
+  INTERNATIONAL_LEVEL
+}
+
+enum OrgType {
+  CLUB
+  ACADEMY
+  SCHOOL
+  COLLEGE
+  FEDERATION
+  SPORTS_COMPLEX
+}
+
+enum OrgMemberRole {
+  OWNER
+  ADMIN
+  COACH
+  STAFF
+}
+
+enum SportCategory {
+  TEAM
+  INDIVIDUAL
+  RACQUET
+  COMBAT
+  ATHLETICS
+  WATER_SPORTS
+  WINTER_SPORTS
+}
+
+enum OpportunityCategory {
+  TRIAL
+  TOURNAMENT
+  CAMP
+  TRAINING_PROGRAM
+  ACADEMY_ADMISSION
+  RECRUITMENT
+  WORKSHOP
+}
+
+enum OpportunityStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  UNDER_REVIEW
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum InquiryStatus {
+  PENDING
+  RESPONDED
+  ENROLLED
+  DECLINED
+}
+
+enum NotificationType {
+  APPLICATION_UPDATE
+  CONNECTION_REQUEST
+  INQUIRY
+  OPPORTUNITY_ALERT
+  SYSTEM
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id                      String                  @id @default(cuid())
+  email                   String                  @unique
+  passwordHash            String
+  role                    Role                    @default(ATHLETE)
+  name                    String
+  phone                   String?
+  city                    String?
+  state                   String?
+  bio                     String?                 @db.Text
+  avatarUrl               String?
+  isVerified              Boolean                 @default(false)
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  athleteProfile          AthleteProfile?
+  coachProfile            CoachProfile?
+  organizationMemberships OrganizationMember[]
+  createdOrganizations    Organization[]          @relation("CreatedOrganizations")
+  userSports              UserSport[]
+  sentConnections         Connection[]            @relation("SentConnections")
+  receivedConnections     Connection[]            @relation("ReceivedConnections")
+  sentInquiries           CoachingInquiry[]       @relation("AthleteInquiries")
+  notifications           Notification[]
+  savedOpportunities      SavedOpportunity[]
+  applications            OpportunityApplication[]
+  organizedOpportunities  Opportunity[]           @relation("OrganizerOpportunities")
+  reportsMade             Report[]                @relation("ReporterUser")
+  reportsReceived         Report[]                @relation("ReportedUser")
+
+  @@index([role])
+  @@index([city, state])
+}
+
+model AthleteProfile {
+  id                     String                 @id @default(cuid())
+  userId                 String                 @unique
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  primarySportId         String?
+  skillLevel             SkillLevel             @default(INTERMEDIATE)
+  playingPosition        String?
+  yearsOfExperience      Int                    @default(0)
+  sportingGoals          String?                @db.Text
+  preferredOpportunities String?                @db.Text
+  heightCm               Float?
+  weightKg               Float?
+  dateOfBirth            DateTime?
+  gender                 String?
+  isPublic               Boolean                @default(true)
+  videoUrls              String?                @db.Text
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  achievements           AthleteAchievement[]
+  certificates           AthleteCertificate[]
+  statistics             AthleteStatistic[]
+  applications           OpportunityApplication[]
+
+  @@index([skillLevel])
+}
+
+model CoachProfile {
+  id                      String            @id @default(cuid())
+  userId                  String            @unique
+  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  primarySportId          String?
+  qualifications          String?           @db.Text
+  experienceYears         Int               @default(0)
+  coachingMethodology     String?           @db.Text
+  coachingModes           String?
+  hourlyRate              Float?
+  isAvailable             Boolean           @default(true)
+  organizationAffiliation String?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  programs                CoachingProgram[]
+  inquiriesReceived       CoachingInquiry[] @relation("CoachInquiries")
+
+  @@index([experienceYears])
+}
+
+model Organization {
+  id             String               @id @default(cuid())
+  name           String
+  slug           String               @unique
+  type           OrgType              @default(ACADEMY)
+  description    String?              @db.Text
+  city           String
+  state          String
+  address        String?              @db.Text
+  facilities     String?              @db.Text
+  sportsOffered  String?              @db.Text
+  logoUrl        String?
+  bannerUrl      String?
+  website        String?
+  contactEmail   String?
+  contactPhone   String?
+  isVerified     Boolean              @default(false)
+  createdById    String
+  createdBy      User                 @relation("CreatedOrganizations", fields: [createdById], references: [id])
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  members        OrganizationMember[]
+  opportunities  Opportunity[]
+
+  @@index([type])
+  @@index([city, state])
+}
+
+model OrganizationMember {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           OrgMemberRole @default(STAFF)
+  createdAt      DateTime      @default(now())
+
+  @@unique([organizationId, userId])
+}
+
+model Sport {
+  id            String               @id @default(cuid())
+  name          String               @unique
+  slug          String               @unique
+  category      SportCategory        @default(TEAM)
+  icon          String?
+  description   String?              @db.Text
+  createdAt     DateTime             @default(now())
+
+  userSports    UserSport[]
+  opportunities Opportunity[]
+  programs      CoachingProgram[]
+  achievements  AthleteAchievement[]
+  statistics    AthleteStatistic[]
+  inquiries     CoachingInquiry[]
+
+  @@index([category])
+}
+
+model UserSport {
+  id         String     @id @default(cuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportId    String
+  sport      Sport      @relation(fields: [sportId], references: [id], onDelete: Cascade)
+  isPrimary  Boolean    @default(false)
+  skillLevel SkillLevel @default(INTERMEDIATE)
+
+  @@unique([userId, sportId])
+}
+
+model AthleteAchievement {
+  id               String         @id @default(cuid())
+  athleteProfileId String
+  athleteProfile   AthleteProfile @relation(fields: [athleteProfileId], references: [id], onDelete: Cascade)
+  sportId          String?
+  sport            Sport?         @relation(fields: [sportId], references: [id])
+  title            String
+  competitionName  String
+  rankOrAward      String
+  eventDate        DateTime?
+  description      String?        @db.Text
+  certificateUrl   String?
+  createdAt        DateTime       @default(now())
+
+  @@index([athleteProfileId])
+}
+
+model AthleteCertificate {
+  id                 String             @id @default(cuid())
+  athleteProfileId   String
+  athleteProfile     AthleteProfile     @relation(fields: [athleteProfileId], references: [id], onDelete: Cascade)
+  title              String
+  issuingAuthority   String
+  issueDate          DateTime?
+  expiryDate         DateTime?
+  certificateUrl     String
+  verificationStatus VerificationStatus @default(PENDING)
+  createdAt          DateTime           @default(now())
+
+  @@index([athleteProfileId])
+}
+
+model AthleteStatistic {
+  id               String         @id @default(cuid())
+  athleteProfileId String
+  athleteProfile   AthleteProfile @relation(fields: [athleteProfileId], references: [id], onDelete: Cascade)
+  sportId          String
+  sport            Sport          @relation(fields: [sportId], references: [id])
+  metricName       String
+  metricValue      String
+  unit             String?
+  recordedDate     DateTime?
+  season           String?
+  createdAt        DateTime       @default(now())
+
+  @@index([athleteProfileId])
+  @@index([sportId])
+}
+
+model Opportunity {
+  id                      String                 @id @default(cuid())
+  title                   String
+  slug                    String?                @unique
+  description             String                 @db.Text
+  category                OpportunityCategory    @default(TRIAL)
+  sportId                 String
+  sport                   Sport                  @relation(fields: [sportId], references: [id])
+  organizerId             String
+  organizer               User                   @relation("OrganizerOpportunities", fields: [organizerId], references: [id])
+  organizationId          String?
+  organization            Organization?          @relation(fields: [organizationId], references: [id])
+  city                    String
+  state                   String
+  venue                   String
+  startDate               DateTime
+  endDate                 DateTime
+  deadline                DateTime
+  eligibility             String?                @db.Text
+  skillLevel              SkillLevel             @default(INTERMEDIATE)
+  maxParticipants         Int?
+  applicationInstructions String?                @db.Text
+  feeAmount               Float                  @default(0)
+  feeCurrency             String                 @default("INR")
+  status                  OpportunityStatus      @default(PUBLISHED)
+  bannerUrl               String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+
+  applications            OpportunityApplication[]
+  savedByUsers            SavedOpportunity[]
+  reports                 Report[]               @relation("ReportedOpportunity")
+
+  @@index([sportId])
+  @@index([status])
+  @@index([city, state])
+  @@index([category])
+}
+
+model OpportunityApplication {
+  id               String            @id @default(cuid())
+  opportunityId    String
+  opportunity      Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  applicantId      String
+  applicant        User              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  athleteProfileId String?
+  athleteProfile   AthleteProfile?   @relation(fields: [athleteProfileId], references: [id])
+  status           ApplicationStatus @default(PENDING)
+  notes            String?           @db.Text
+  feedback         String?           @db.Text
+  appliedAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([opportunityId, applicantId])
+  @@index([status])
+}
+
+model SavedOpportunity {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  savedAt       DateTime    @default(now())
+
+  @@unique([userId, opportunityId])
+}
+
+model Connection {
+  id          String           @id @default(cuid())
+  requesterId String
+  requester   User             @relation("SentConnections", fields: [requesterId], references: [id], onDelete: Cascade)
+  receiverId  String
+  receiver    User             @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+  status      ConnectionStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([requesterId, receiverId])
+  @@index([status])
+}
+
+model CoachingProgram {
+  id              String            @id @default(cuid())
+  coachId         String
+  coach           CoachProfile      @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  sportId         String
+  sport           Sport             @relation(fields: [sportId], references: [id])
+  title           String
+  description     String            @db.Text
+  durationWeeks   Int               @default(4)
+  sessionsPerWeek Int               @default(3)
+  feeAmount       Float             @default(0)
+  feeCurrency     String            @default("INR")
+  coachingMode    String            @default("IN_PERSON")
+  location        String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  inquiries       CoachingInquiry[]
+
+  @@index([coachId])
+}
+
+model CoachingInquiry {
+  id              String           @id @default(cuid())
+  athleteId       String
+  athlete         User             @relation("AthleteInquiries", fields: [athleteId], references: [id], onDelete: Cascade)
+  coachId         String
+  coach           CoachProfile     @relation("CoachInquiries", fields: [coachId], references: [id], onDelete: Cascade)
+  programId       String?
+  program         CoachingProgram? @relation(fields: [programId], references: [id])
+  sportId         String?
+  sport           Sport?           @relation(fields: [sportId], references: [id])
+  message         String           @db.Text
+  status          InquiryStatus    @default(PENDING)
+  responseMessage String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([status])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String           @db.Text
+  type      NotificationType @default(SYSTEM)
+  isRead    Boolean          @default(false)
+  linkUrl   String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+}
+
+model Report {
+  id                    String       @id @default(cuid())
+  reporterId            String
+  reporter              User         @relation("ReporterUser", fields: [reporterId], references: [id])
+  reportedUserId        String?
+  reportedUser          User?        @relation("ReportedUser", fields: [reportedUserId], references: [id])
+  reportedOpportunityId String?
+  reportedOpportunity   Opportunity? @relation("ReportedOpportunity", fields: [reportedOpportunityId], references: [id])
+  reason                String
+  details               String?      @db.Text
+  status                String       @default("PENDING")
+  createdAt             DateTime     @default(now())
+
+  @@index([status])
+}

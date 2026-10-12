@@ -1,0 +1,28 @@
+{
+  "name": "sports-connect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sports Connect — A Full-Stack Sports Networking & Opportunity-Discovery Platform for India",
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run build:frontend",
+    "test:backend": "npm --prefix backend test",
+    "test": "npm run test:backend",
+    "seed:demo": "npm --prefix backend run seed:demo"
+  },
+  "keywords": [
+    "sports-connect",
+    "react",
+    "tailwind",
+    "vite",
+    "express",
+    "supabase",
+    "postgresql",
+    "india-sports"
+  ],
+  "author": "Sports Connect Team",
+  "license": "ISC"
+}

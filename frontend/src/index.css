@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+}
+
+/* Glassmorphism & Custom Badges */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-panel-dark {
+  background: rgba(11, 19, 43, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(58, 134, 255, 0.2);
+}
+
+.sports-gradient {
+  background: linear-gradient(135deg, #0B132B 0%, #1C2541 50%, #3A86FF 100%);
+}
+
+.sports-gradient-subtle {
+  background: linear-gradient(135deg, rgba(11, 19, 43, 0.03) 0%, rgba(58, 134, 255, 0.07) 100%);
+}
+
+/* Custom Sports Pattern Grid */
+.sports-hero-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* Print Stylesheet for Athlete Digital Sports Résumé */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  header, nav, footer, .no-print, button, .btn-print {
+    display: none !important;
+  }
+
+  .print-resume {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
+}
