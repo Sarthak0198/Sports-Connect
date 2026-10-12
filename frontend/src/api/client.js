@@ -1,4 +1,6 @@
-// Central API Client for Sports Connect Express Service
+// Central API Client for Sports Connect Express Service & Live Supabase Cloud
+import { supabase, isLiveSupabase } from './supabase';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 class ApiClient {
@@ -52,14 +54,26 @@ class ApiClient {
 
       return data?.data !== undefined ? data.data : data;
     } catch (err) {
-      console.warn(`[API Client Error] ${options.method || 'GET'} ${endpoint}:`, err.message);
+      // In production/Vercel without live backend URL, warn and let caller fallback
+      console.warn(`[API Client Note] ${options.method || 'GET'} ${endpoint}:`, err.message);
       throw err;
     }
   }
 
   // --- Auth & Profile ---
-  getMe() {
-    return this.request('/auth/me');
+  async getMe() {
+    try {
+      return await this.request('/auth/me');
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+          return profile || user;
+        }
+      }
+      throw err;
+    }
   }
 
   syncProfile(profileData) {
@@ -70,28 +84,80 @@ class ApiClient {
   }
 
   getDemoAccounts() {
-    return this.request('/auth/demo-accounts');
+    return this.request('/auth/demo-accounts').catch(() => [
+      { email: 'athlete.demo@sportsconnect.in', role: 'athlete', name: 'Aarav Sharma (Demo Athlete)' },
+      { email: 'coach.vikram@sportsconnect.in', role: 'coach', name: 'Coach Vikram Rathore (Cricket)' },
+      { email: 'coach.ananya@sportsconnect.in', role: 'coach', name: 'Coach Ananya Roy (Badminton)' },
+      { email: 'academy.admin@sportsconnect.in', role: 'club', name: 'Satara District Kabaddi Association' },
+      { email: 'organizer.delhi@sportsconnect.in', role: 'organizer', name: 'Delhi Youth Sports Foundation' }
+    ]);
   }
 
   getMyProfile() {
-    return this.request('/profiles/me');
+    return this.request('/profiles/me').catch(async (err) => {
+      if (isLiveSupabase() && supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase.from('profiles').select('*, athlete_profiles(*), coach_profiles(*)').eq('id', user.id).single();
+          if (data) return data;
+        }
+      }
+      throw err;
+    });
   }
 
   updateMyProfile(profileData) {
     return this.request('/profiles/me', {
       method: 'PATCH',
       body: JSON.stringify(profileData)
+    }).catch(async (err) => {
+      if (isLiveSupabase() && supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data, error } = await supabase.from('profiles').update(profileData).eq('id', user.id).select().single();
+          if (!error && data) return data;
+        }
+      }
+      throw err;
     });
   }
 
   // --- Athletes ---
-  listAthletes(params = {}) {
-    const qs = new URLSearchParams(params).toString();
-    return this.request(`/athletes${qs ? `?${qs}` : ''}`);
+  async listAthletes(params = {}) {
+    try {
+      const qs = new URLSearchParams(params).toString();
+      return await this.request(`/athletes${qs ? `?${qs}` : ''}`);
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        let q = supabase
+          .from('profiles')
+          .select('id, full_name, city, state, bio, avatar_url, is_verified, athlete_profiles(*, sports(*)), athlete_achievements(*)')
+          .eq('role', 'athlete');
+
+        if (params.state) q = q.ilike('state', `%${params.state}%`);
+        if (params.search) q = q.ilike('full_name', `%${params.search}%`);
+
+        const { data, error } = await q;
+        if (!error && data) return data;
+      }
+      throw err;
+    }
   }
 
-  getAthleteById(id) {
-    return this.request(`/athletes/${id}`);
+  async getAthleteById(id) {
+    try {
+      return await this.request(`/athletes/${id}`);
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*, athlete_profiles(*, sports(*)), athlete_achievements(*), athlete_statistics(*)')
+          .eq('id', id)
+          .single();
+        if (!error && data) return data;
+      }
+      throw err;
+    }
   }
 
   addAchievement(achData) {
@@ -121,13 +187,41 @@ class ApiClient {
   }
 
   // --- Coaches ---
-  listCoaches(params = {}) {
-    const qs = new URLSearchParams(params).toString();
-    return this.request(`/coaches${qs ? `?${qs}` : ''}`);
+  async listCoaches(params = {}) {
+    try {
+      const qs = new URLSearchParams(params).toString();
+      return await this.request(`/coaches${qs ? `?${qs}` : ''}`);
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        let q = supabase
+          .from('profiles')
+          .select('id, full_name, city, state, bio, avatar_url, is_verified, coach_profiles(*, sports(*))')
+          .eq('role', 'coach');
+
+        if (params.state) q = q.ilike('state', `%${params.state}%`);
+        if (params.search) q = q.ilike('full_name', `%${params.search}%`);
+
+        const { data, error } = await q;
+        if (!error && data) return data;
+      }
+      throw err;
+    }
   }
 
-  getCoachById(id) {
-    return this.request(`/coaches/${id}`);
+  async getCoachById(id) {
+    try {
+      return await this.request(`/coaches/${id}`);
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*, coach_profiles(*, sports(*)), coaching_programs(*)')
+          .eq('id', id)
+          .single();
+        if (!error && data) return data;
+      }
+      throw err;
+    }
   }
 
   sendCoachingInquiry(coachId, inquiryData) {
@@ -149,13 +243,36 @@ class ApiClient {
   }
 
   // --- Organizations ---
-  listOrganizations(params = {}) {
-    const qs = new URLSearchParams(params).toString();
-    return this.request(`/organizations${qs ? `?${qs}` : ''}`);
+  async listOrganizations(params = {}) {
+    try {
+      const qs = new URLSearchParams(params).toString();
+      return await this.request(`/organizations${qs ? `?${qs}` : ''}`);
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        let q = supabase.from('organizations').select('*');
+        if (params.state) q = q.ilike('state', `%${params.state}%`);
+        if (params.search) q = q.ilike('name', `%${params.search}%`);
+        const { data, error } = await q;
+        if (!error && data) return data;
+      }
+      throw err;
+    }
   }
 
-  getOrganizationById(id) {
-    return this.request(`/organizations/${id}`);
+  async getOrganizationById(id) {
+    try {
+      return await this.request(`/organizations/${id}`);
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('*, opportunities(*, sports(*))')
+          .eq('id', id)
+          .single();
+        if (!error && data) return data;
+      }
+      throw err;
+    }
   }
 
   createOrganization(orgData) {
@@ -176,14 +293,44 @@ class ApiClient {
     return this.request('/organizations/mine');
   }
 
-  // --- Opportunities ---
-  listOpportunities(params = {}) {
-    const qs = new URLSearchParams(params).toString();
-    return this.request(`/opportunities${qs ? `?${qs}` : ''}`);
+  // --- Opportunities (Including Training Camps, Trials, Tournaments) ---
+  async listOpportunities(params = {}) {
+    try {
+      const qs = new URLSearchParams(params).toString();
+      return await this.request(`/opportunities${qs ? `?${qs}` : ''}`);
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        let q = supabase
+          .from('opportunities')
+          .select('*, sports(*), organizations(*)');
+
+        if (params.category) q = q.eq('category', params.category);
+        if (params.sport_id) q = q.eq('sport_id', parseInt(params.sport_id, 10));
+        if (params.state) q = q.ilike('state', `%${params.state}%`);
+        if (params.city) q = q.ilike('city', `%${params.city}%`);
+        if (params.search) q = q.or(`title.ilike.%${params.search}%,description.ilike.%${params.search}%`);
+
+        const { data, error } = await q.order('registration_deadline', { ascending: true, nullsFirst: false });
+        if (!error && data) return data;
+      }
+      throw err;
+    }
   }
 
-  getOpportunityById(id) {
-    return this.request(`/opportunities/${id}`);
+  async getOpportunityById(id) {
+    try {
+      return await this.request(`/opportunities/${id}`);
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        const { data, error } = await supabase
+          .from('opportunities')
+          .select('*, sports(*), organizations(*)')
+          .eq('id', id)
+          .single();
+        if (!error && data) return data;
+      }
+      throw err;
+    }
   }
 
   createOpportunity(oppData) {
@@ -312,12 +459,38 @@ class ApiClient {
   }
 
   // --- Stats & Taxonomy ---
-  getPlatformStats() {
-    return this.request('/stats/platform');
+  async getPlatformStats() {
+    try {
+      return await this.request('/stats/platform');
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        const [p, o, c, s] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'athlete'),
+          supabase.from('opportunities').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'coach'),
+          supabase.from('sports').select('*', { count: 'exact', head: true })
+        ]);
+        return {
+          totalAthletes: p.count || 2,
+          totalOpportunities: o.count || 7,
+          totalCoaches: c.count || 2,
+          totalSports: s.count || 11
+        };
+      }
+      throw err;
+    }
   }
 
-  listSports() {
-    return this.request('/sports');
+  async listSports() {
+    try {
+      return await this.request('/sports');
+    } catch (err) {
+      if (isLiveSupabase() && supabase) {
+        const { data, error } = await supabase.from('sports').select('*');
+        if (!error && data) return data;
+      }
+      throw err;
+    }
   }
 }
 
