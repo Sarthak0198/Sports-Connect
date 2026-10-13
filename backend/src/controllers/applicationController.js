@@ -16,6 +16,13 @@ export const applyForOpportunity = async (req, res, next) => {
     const applicantId = req.user.id;
     const { message, contact_phone, contact_email, resume_url } = req.body;
 
+    if (contact_phone) {
+      const cleanPhone = String(contact_phone).replace(/\D/g, '');
+      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        return apiError(res, 'Invalid Indian mobile number. Must be 10 digits starting with 6, 7, 8, or 9', 400);
+      }
+    }
+
     if (config.isSupabaseConfigured()) {
       const admin = getSupabaseAdmin();
 

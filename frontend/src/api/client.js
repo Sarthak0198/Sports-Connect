@@ -135,12 +135,15 @@ class ApiClient {
           .eq('role', 'athlete');
 
         if (params.state) q = q.ilike('state', `%${params.state}%`);
-        if (params.search) q = q.ilike('full_name', `%${params.search}%`);
+        if (params.search) {
+          q = q.or(`full_name.ilike.%${params.search}%,city.ilike.%${params.search}%,state.ilike.%${params.search}%`);
+        }
 
         const { data, error } = await q;
-        if (!error && data) return data;
+        if (error) console.warn('[Supabase] listAthletes error:', error.message);
+        return data || [];
       }
-      throw err;
+      return [];
     }
   }
 
@@ -199,12 +202,15 @@ class ApiClient {
           .eq('role', 'coach');
 
         if (params.state) q = q.ilike('state', `%${params.state}%`);
-        if (params.search) q = q.ilike('full_name', `%${params.search}%`);
+        if (params.search) {
+          q = q.or(`full_name.ilike.%${params.search}%,city.ilike.%${params.search}%,state.ilike.%${params.search}%`);
+        }
 
         const { data, error } = await q;
-        if (!error && data) return data;
+        if (error) console.warn('[Supabase] listCoaches error:', error.message);
+        return data || [];
       }
-      throw err;
+      return [];
     }
   }
 

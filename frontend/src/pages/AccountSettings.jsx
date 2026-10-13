@@ -16,12 +16,18 @@ export const AccountSettings = () => {
 
   const handleSaveSettings = async (e) => {
     e.preventDefault();
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+    if (cleanPhone && !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      alert('Please enter a valid 10-digit Indian mobile number (must start with 6, 7, 8, or 9)');
+      return;
+    }
+
     setSaving(true);
     setSuccess('');
     try {
       await api.updateMyProfile({
         visibility,
-        phone
+        phone: cleanPhone || null
       });
       await refreshProfile();
       setSuccess('Settings updated successfully!');
@@ -129,14 +135,38 @@ export const AccountSettings = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Direct Contact Phone</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+91 98765 43210"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sports-blue"
-              />
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-semibold text-slate-700">Direct Contact Phone</label>
+                <span className="text-[11px] text-slate-400">
+                  {phone ? phone.replace(/\D/g, '').length : 0}/10
+                </span>
+              </div>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-slate-600 text-xs font-semibold border-r border-slate-200 pr-2.5">
+                  <span>🇮🇳 +91</span>
+                </div>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={phone}
+                  onKeyDown={(e) => {
+                    if (
+                      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key) ||
+                      e.ctrlKey || e.metaKey
+                    ) return;
+                    if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+                  }}
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/\D/g, '');
+                    if (val.length === 12 && val.startsWith('91')) val = val.slice(2);
+                    else if (val.length === 11 && val.startsWith('0')) val = val.slice(1);
+                    setPhone(val.slice(0, 10));
+                  }}
+                  placeholder="9876543210"
+                  className="w-full pl-20 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sports-blue tracking-wide"
+                />
+              </div>
             </div>
           </div>
           <p className="text-[11px] text-slate-400 italic">

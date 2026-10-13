@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Sign Up with email, password, and metadata
-  const register = async ({ email, password, full_name, role, city, state, primary_sport_id }) => {
+  const register = async ({ email, password, full_name, phone, role, city, state, primary_sport_id }) => {
     setError(null);
     try {
       if (isLiveSupabase() && supabase) {
@@ -119,7 +119,7 @@ export const AuthProvider = ({ children }) => {
           email,
           password,
           options: {
-            data: { full_name, role }
+            data: { full_name, phone, role }
           }
         });
         if (sbError) throw sbError;
@@ -129,6 +129,7 @@ export const AuthProvider = ({ children }) => {
           // Sync profile to database via Express API
           const synced = await api.syncProfile({
             full_name,
+            phone,
             role,
             city,
             state,
@@ -145,6 +146,7 @@ export const AuthProvider = ({ children }) => {
         api.setToken(demoToken);
         const synced = await api.syncProfile({
           full_name,
+          phone,
           role: role || 'athlete',
           city,
           state,

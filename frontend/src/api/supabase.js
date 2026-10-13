@@ -2,11 +2,11 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
-  'https://yxqdmjtavnddtzxhyodf.supabase.co';
+  'https://mjrceqxnrmkvefdpwlne.supabase.co';
 
 const supabaseKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4cWRtanRhdm5kZHR6eGh5b2RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3OTQ1MDIsImV4cCI6MjEwNzM3MDUwMn0.A_EeYrnlCE20YcR6SrbK1rbR3UcZmrzWCaHVH4QL7FE';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qcmNlcXhucm1rdmVmZHB3bG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzUwNDEsImV4cCI6MjEwNzQ1MTA0MX0.rXz04_l4kXymlNhohLH3X9zq5IMVR-sk8AKu9_culis';
 
 export const isLiveSupabase = () => {
   return !!(

@@ -106,6 +106,17 @@ export const updateMyProfile = async (req, res, next) => {
       primary_sport_id
     } = req.body;
 
+    if (full_name && typeof full_name === 'string' && full_name.length > 200) {
+      return apiError(res, 'Full name cannot exceed 200 characters', 400);
+    }
+
+    if (phone) {
+      const cleanPhone = String(phone).replace(/\D/g, '');
+      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        return apiError(res, 'Invalid Indian mobile number. Must be 10 digits starting with 6, 7, 8, or 9', 400);
+      }
+    }
+
     if (config.isSupabaseConfigured()) {
       const admin = getSupabaseAdmin();
 

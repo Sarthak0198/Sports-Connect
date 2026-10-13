@@ -16,7 +16,19 @@ export const getMe = async (req, res, next) => {
 
 export const syncProfile = async (req, res, next) => {
   try {
-    const { full_name, role, city, state, bio, primary_sport_id } = req.body;
+    const { full_name, role, city, state, bio, primary_sport_id, phone } = req.body;
+
+    if (full_name && typeof full_name === 'string' && full_name.length > 200) {
+      return apiError(res, 'Full name cannot exceed 200 characters', 400);
+    }
+
+    if (phone) {
+      const cleanPhone = String(phone).replace(/\D/g, '');
+      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        return apiError(res, 'Invalid Indian mobile number. Must be 10 digits starting with 6, 7, 8, or 9', 400);
+      }
+    }
+
     const userId = req.user.id;
 
     if (config.isSupabaseConfigured()) {
@@ -33,6 +45,7 @@ export const syncProfile = async (req, res, next) => {
           city: city || null,
           state: state || null,
           bio: bio || null,
+          phone: phone ? String(phone).replace(/\D/g, '').slice(-10) : null,
           updated_at: new Date().toISOString()
         })
         .select()
@@ -62,6 +75,7 @@ export const syncProfile = async (req, res, next) => {
         if (city) existing.city = city;
         if (state) existing.state = state;
         if (bio) existing.bio = bio;
+        if (phone) existing.phone = String(phone).replace(/\D/g, '').slice(-10);
         return apiSuccess(res, existing, 'Profile updated (Demo mode)');
       }
       return apiSuccess(res, req.user, 'Profile synchronized');

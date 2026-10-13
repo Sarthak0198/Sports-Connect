@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Trophy, Mail, Lock, User, MapPin, ArrowRight, Shield } from 'lucide-react';
+import { Trophy, Mail, Lock, User, Phone, MapPin, ArrowRight, Shield } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Alert } from '../components/common/Alert';
@@ -14,6 +14,7 @@ export const Register = () => {
 
   // Form Fields
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('athlete');
@@ -28,14 +29,57 @@ export const Register = () => {
     api.listSports().then(data => setSports(data || [])).catch(() => {});
   }, []);
 
+  const handlePhoneKeyDown = (e) => {
+    // Allow navigation, control keys, backspace, delete, tab, enter
+    if (
+      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key) ||
+      e.ctrlKey || e.metaKey
+    ) {
+      return;
+    }
+    // Restrict usage of letters and special characters (only allow 0-9)
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const handlePhoneChange = (e) => {
+    // Strip all non-digit characters
+    let val = e.target.value.replace(/\D/g, '');
+    // If pasted with country code (+91 / 91) or leading 0, clean it
+    if (val.length === 12 && val.startsWith('91')) {
+      val = val.slice(2);
+    } else if (val.length === 11 && val.startsWith('0')) {
+      val = val.slice(1);
+    }
+    // Restrict maximum length to 10 digits
+    setPhone(val.slice(0, 10));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (fullName.trim().length > 200) {
+      setError('Full name cannot exceed 200 characters');
+      return;
+    }
+
+    if (!phone) {
+      setError('Please enter your 10-digit mobile number');
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      setError('Please enter a valid 10-digit Indian mobile number (must start with 6, 7, 8, or 9)');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
       await register({
-        full_name: fullName,
+        full_name: fullName.trim(),
+        phone,
         email,
         password,
         role,
@@ -106,20 +150,58 @@ export const Register = () => {
 
             {/* Full Name */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Full Name / Organization Name
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Full Name / Organization Name
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  {fullName.length}/200
+                </span>
+              </div>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   required
+                  maxLength={200}
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => setFullName(e.target.value.slice(0, 200))}
                   placeholder="e.g. Aarav Sharma or Satara Academy"
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sports-blue"
                 />
               </div>
+            </div>
+
+            {/* Mobile Number */}
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Mobile Number (India)
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  {phone.length}/10
+                </span>
+              </div>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-slate-600 text-xs font-semibold border-r border-slate-200 pr-2.5">
+                  <Phone className="w-3.5 h-3.5 text-slate-400" />
+                  <span>+91</span>
+                </div>
+                <input
+                  type="tel"
+                  required
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={phone}
+                  onKeyDown={handlePhoneKeyDown}
+                  onChange={handlePhoneChange}
+                  placeholder="9876543210"
+                  className="w-full pl-20 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sports-blue tracking-wide"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                10 digits only, starting with 6, 7, 8, or 9 (letters & special characters blocked)
+              </p>
             </div>
 
             {/* Email */}
