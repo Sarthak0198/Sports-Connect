@@ -4,6 +4,7 @@
   "private": true,
   "description": "Sports Connect — A Full-Stack Sports Networking & Opportunity-Discovery Platform for India",
   "scripts": {
+    "postinstall": "npm --prefix frontend install",
     "install:all": "npm --prefix backend install && npm --prefix frontend install",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
